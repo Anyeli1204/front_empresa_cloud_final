@@ -1,0 +1,716 @@
+{
+	"info": {
+		"_postman_id": "3d9b833b-8b60-443f-88ec-90903262b42c",
+		"name": "Cloud Proyecto Final",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "43483877",
+		"_collection_link": "https://solar-shuttle-585969.postman.co/workspace/My-Workspace~004cd53e-9d62-45cb-87fe-07a3db62d439/collection/43483877-3d9b833b-8b60-443f-88ec-90903262b42c?action=share&source=collection_link&creator=43483877"
+	},
+	"item": [
+		{
+			"name": "Listar Productos",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://eay18uag0f.execute-api.us-east-1.amazonaws.com/producto/Hamburguesa",
+					"protocol": "https",
+					"host": [
+						"eay18uag0f",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"producto",
+						"Hamburguesa"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Producto Especifico",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://eay18uag0f.execute-api.us-east-1.amazonaws.com/producto/Hamburguesa/hamburgesa_black_friday_extrema",
+					"protocol": "https",
+					"host": [
+						"eay18uag0f",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"producto",
+						"Hamburguesa",
+						"hamburgesa_black_friday_extrema"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ListarCombos",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://64uv58hvi5.execute-api.us-east-1.amazonaws.com/combos/Combos",
+					"protocol": "https",
+					"host": [
+						"64uv58hvi5",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"combos",
+						"Combos"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Combo Especifico",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://64uv58hvi5.execute-api.us-east-1.amazonaws.com/combos/Combos/combo_extrema",
+					"protocol": "https",
+					"host": [
+						"64uv58hvi5",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"combos",
+						"Combos",
+						"combo_extrema"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Crear local",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"tenant_id\": \"LIMA#CENTRO\",\r\n  \"direccion\": \"Av. Arequipa 123, Lima\",\r\n  \"telefono\": \"987654321\",\r\n  \"tipo_despacho\": [\"Envio a domicilio\", \"Retiro en tienda\"],\r\n  \"latitud\": -12.046374,\r\n  \"longitud\": -77.042793\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://3ynfhy0ua0.execute-api.us-east-1.amazonaws.com/prod/locales",
+					"protocol": "https",
+					"host": [
+						"3ynfhy0ua0",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"prod",
+						"locales"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ListarLocales",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://3ynfhy0ua0.execute-api.us-east-1.amazonaws.com/prod/locales",
+					"protocol": "https",
+					"host": [
+						"3ynfhy0ua0",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"prod",
+						"locales"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Obtener Local",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://3ynfhy0ua0.execute-api.us-east-1.amazonaws.com/prod/locales/LIMA%23CENTRO",
+					"protocol": "https",
+					"host": [
+						"3ynfhy0ua0",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"prod",
+						"locales",
+						"LIMA%23CENTRO"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "FiltrarLocal",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://3ynfhy0ua0.execute-api.us-east-1.amazonaws.com/prod/locales/filtro?q=centro",
+					"protocol": "https",
+					"host": [
+						"3ynfhy0ua0",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"prod",
+						"locales",
+						"filtro"
+					],
+					"query": [
+						{
+							"key": "q",
+							"value": "centro"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Registrarse",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"nombre\": \"Juan\",\r\n  \"apellidos\": \"Pérez\",\r\n  \"tipo_documento\": \"DNI\",\r\n  \"documento\": \"12345678\",\r\n  \"numero\": \"+51987654321\",\r\n  \"fecha_nacimiento\": \"1990-05-15\",\r\n  \"tenant_id\": \"juanperez@mail.com\",\r\n  \"password\": \"MiPassword123\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://mgf212lzse.execute-api.us-east-1.amazonaws.com/dev/users/register",
+					"protocol": "https",
+					"host": [
+						"mgf212lzse",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"users",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Logearse",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"tenant_id\": \"juanperez@mail.com\",\r\n  \"password\": \"MiPassword123\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://mgf212lzse.execute-api.us-east-1.amazonaws.com/dev/users/login",
+					"protocol": "https",
+					"host": [
+						"mgf212lzse",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"users",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Validar Token",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "47d9a722-6c2c-44d1-8cc3-7704f00cf57d",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://mgf212lzse.execute-api.us-east-1.amazonaws.com/dev/users/validate-token",
+					"protocol": "https",
+					"host": [
+						"mgf212lzse",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"users",
+						"validate-token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Ver Perfil",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "4fe7e4eb-39db-4fa1-a9be-fff74091d84f",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://mgf212lzse.execute-api.us-east-1.amazonaws.com/dev/users/profile",
+					"protocol": "https",
+					"host": [
+						"mgf212lzse",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"users",
+						"profile"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Actualizar Perfil",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "4fe7e4eb-39db-4fa1-a9be-fff74091d84f",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"nombre\": \"Juan\",\r\n  \"apellidos\": \"Pérez\",\r\n  \"mi_direccion\": \"Calle Falsa 123\",\r\n  \"puntos_de_amor\": 10,\r\n  \"multiplicador_de_puntos\": 2\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://mgf212lzse.execute-api.us-east-1.amazonaws.com/dev/users/profile",
+					"protocol": "https",
+					"host": [
+						"mgf212lzse",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"users",
+						"profile"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Ver Favoritos",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "47d9a722-6c2c-44d1-8cc3-7704f00cf57d",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://u7sme2r9z5.execute-api.us-east-1.amazonaws.com/prod/favoritos",
+					"protocol": "https",
+					"host": [
+						"u7sme2r9z5",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"prod",
+						"favoritos"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "AgregarFavorito",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "47d9a722-6c2c-44d1-8cc3-7704f00cf57d",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"favorito\": {\r\n    \"nombre\": \"Producto 2\",\r\n    \"descripcion\": \"Descripción del Producto 1\",\r\n    \"precio\": \"100\"\r\n  }\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://u7sme2r9z5.execute-api.us-east-1.amazonaws.com/prod/favoritos",
+					"protocol": "https",
+					"host": [
+						"u7sme2r9z5",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"prod",
+						"favoritos"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Eliminar Favorito",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "47d9a722-6c2c-44d1-8cc3-7704f00cf57d",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"favorito\": {\r\n        \"nombre\": \"Producto 2\",\r\n        \"descripcion\": \"Descripción del producto 1\",\r\n        \"precio\": 100\r\n    }\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://u7sme2r9z5.execute-api.us-east-1.amazonaws.com/prod/favoritos",
+					"protocol": "https",
+					"host": [
+						"u7sme2r9z5",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"prod",
+						"favoritos"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Registrar Empleado",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"gmail\": \"empleado@dominio.com\",\r\n  \"nombre\": \"Juan\",\r\n  \"apellidos\": \"Pérez\",\r\n  \"tipo_documento\": \"DNI\",\r\n  \"documento\": \"12345678\",\r\n  \"numero\": \"987654321\",\r\n  \"fecha_nacimiento\": \"1985-07-15\",\r\n  \"rol\": \"administrador\",\r\n  \"password\": \"contraseñaSegura1234\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://twc2hcjsii.execute-api.us-east-1.amazonaws.com/dev/empleados/registrar",
+					"protocol": "https",
+					"host": [
+						"twc2hcjsii",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"empleados",
+						"registrar"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Logeo Empleado",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"tenant_id\": \"empleado@dominio.com\",\r\n  \"password\": \"contraseñaSegura1234\",\r\n  \"rol\": \"administrador\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://twc2hcjsii.execute-api.us-east-1.amazonaws.com/dev/empleados/logearse",
+					"protocol": "https",
+					"host": [
+						"twc2hcjsii",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"empleados",
+						"logearse"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Ver Perfil Empleado",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"tenant_id\": \"empleado@dominio.com\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://twc2hcjsii.execute-api.us-east-1.amazonaws.com/dev/empleados/perfil",
+					"protocol": "https",
+					"host": [
+						"twc2hcjsii",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"empleados",
+						"perfil"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Actualizar Perfil Empleado",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"tenant_id\": \"empleado@dominio.com\",\r\n  \"descripcion\": \"Hola soy Alessandro\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://twc2hcjsii.execute-api.us-east-1.amazonaws.com/dev/empleados/perfil",
+					"protocol": "https",
+					"host": [
+						"twc2hcjsii",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"empleados",
+						"perfil"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Ventas por Clientes",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://twc2hcjsii.execute-api.us-east-1.amazonaws.com/dev/empleados/recursos/ventas_por_segmentos",
+					"protocol": "https",
+					"host": [
+						"twc2hcjsii",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"empleados",
+						"recursos",
+						"ventas_por_segmentos"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Ventas por Estado",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://twc2hcjsii.execute-api.us-east-1.amazonaws.com/dev/empleados/recursos/Ventas_por_Estado",
+					"protocol": "https",
+					"host": [
+						"twc2hcjsii",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"empleados",
+						"recursos",
+						"Ventas_por_Estado"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Ventar por Combo",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://twc2hcjsii.execute-api.us-east-1.amazonaws.com/dev/empleados/recursos/Ventas_por_Combinacion",
+					"protocol": "https",
+					"host": [
+						"twc2hcjsii",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"empleados",
+						"recursos",
+						"Ventas_por_Combinacion"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Ventas por Restaurante",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://twc2hcjsii.execute-api.us-east-1.amazonaws.com/dev/empleados/recursos/margenes_por_ganancia",
+					"protocol": "https",
+					"host": [
+						"twc2hcjsii",
+						"execute-api",
+						"us-east-1",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"empleados",
+						"recursos",
+						"margenes_por_ganancia"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
