@@ -7,12 +7,14 @@ import duoQuesoTocinoImage from '../assets/duo queso tocinno.webp';
 import personalBravazoImage from '../assets/Personal Bravado.webp';
 import { 
   obtenerPedidoPorId, 
-  confirmarPaso, 
+  confirmarPaso,
+  iniciarWorkflow,
   mapearEstadoFrontend, 
   mapearEstadoBackend,
   obtenerSiguientePaso 
 } from '../services/pedidosApi';
-import { obtenerRolEmpleado, obtenerIdEmpleado, cerrarSesion } from '../utils/sessionUtils';
+import { obtenerRolEmpleado, obtenerIdEmpleado, obtenerTenantId, cerrarSesion } from '../utils/sessionUtils';
+import { obtenerPerfilEmpleado } from '../services/empleadosApi';
 import './OrderDetail.css';
 
 const OrderDetail = () => {
@@ -23,6 +25,8 @@ const OrderDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [cambiandoEstado, setCambiandoEstado] = useState(false);
+  const [iniciandoWorkflow, setIniciandoWorkflow] = useState(false);
+  const [popup, setPopup] = useState({ mostrar: false, mensaje: '', tipo: 'success' });
 
   useEffect(() => {
     const cargarPedido = async () => {
@@ -30,9 +34,7 @@ const OrderDetail = () => {
         setLoading(true);
         setError(null);
         
-        const tenantId = localStorage.getItem('tenant_id') || 'restaurante_central_01';
-        
-        const respuesta = await obtenerPedidoPorId(id, tenantId);
+        let respuesta = await obtenerPedidoPorId(id, null);
         
         const datosPedido = respuesta.pedido || respuesta;
         const datosCocina = respuesta.cocina || null;
@@ -65,7 +67,7 @@ const OrderDetail = () => {
         }
         
         const uuid = datosPedido.uuid;
-        const tenantIdDelPedido = datosPedido.tenant_id || tenantId;
+        const tenantIdDelPedido = datosPedido.tenant_id || 'restaurante_central_01';
         
         let precioTotal = 0;
         if (datosPedido.elementos && Array.isArray(datosPedido.elementos)) {
@@ -143,12 +145,22 @@ const OrderDetail = () => {
 
   const calcularTiempoEstimado = (estado) => {
     const tiempos = {
+      'pagado': '30-45 min',
       'cocina': '15-20 min',
-      'empaquetamiento': 'Listo',
-      'delivery': '8-12 min',
-      'entregado': 'Entregado'
+      'empaquetamiento': '10-15 min',
+      'delivery': 'En camino',
+      'entregado': 'Entregado',
+      'PAGADO': '30-45 min',
+      'COCINA': '15-20 min',
+      'EMPAQUETAMIENTO': '10-15 min',
+      'DELIVERY': 'En camino',
+      'ENTREGADO': 'Entregado'
     };
-    return tiempos[estado] || '--';
+    
+    if (!estado) return '30-45 min';
+    
+    const estadoNormalizado = estado.toUpperCase();
+    return tiempos[estadoNormalizado] || tiempos[estado.toLowerCase()] || '30-45 min';
   };
 
   // Función auxiliar para formatear fecha
@@ -181,52 +193,93 @@ const OrderDetail = () => {
       const siguientePaso = obtenerSiguientePaso(estadoBackend);
       
       if (!siguientePaso) {
-        alert('No hay siguiente paso disponible');
+        setPopup({ mostrar: true, mensaje: 'No hay siguiente paso disponible', tipo: 'error' });
+        setCambiandoEstado(false);
         return;
       }
       
       const datosAdicionales = {};
-      const idEmpleado = obtenerIdEmpleado();
       
-      if (order.tenant_id) {
-        datosAdicionales.tenant_id = order.tenant_id;
-      }
-      
-      if (siguientePaso.paso === 'delivery-entregado') {
-        const repartidor = prompt('Ingrese el nombre del repartidor:');
-        const idRepartidor = prompt('Ingrese el ID del repartidor:');
-        
-        if (repartidor && idRepartidor) {
-          datosAdicionales.repartidor = repartidor;
-          datosAdicionales.id_repartidor = idRepartidor;
-          datosAdicionales.origen = order.origen || order.delivery?.origen || '';
-          datosAdicionales.destino = order.destino || order.delivery?.destino || '';
-          
-          if (!datosAdicionales.origen) {
-            const origenInput = prompt('Ingrese el origen (dirección de recogida):');
-            if (origenInput) datosAdicionales.origen = origenInput;
-          }
-          if (!datosAdicionales.destino) {
-            const destinoInput = prompt('Ingrese el destino (dirección de entrega):');
-            if (destinoInput) datosAdicionales.destino = destinoInput;
-          }
-          
-          if (!datosAdicionales.repartidor || !datosAdicionales.id_repartidor || !datosAdicionales.origen || !datosAdicionales.destino) {
-            alert('Se requiere el nombre, ID del repartidor, origen y destino');
-            setCambiandoEstado(false);
-            return;
-          }
-        } else {
-          alert('Se requiere el nombre e ID del repartidor');
-          setCambiandoEstado(false);
-          return;
-        }
-      } else if (idEmpleado) {
-        datosAdicionales.id_empleado = idEmpleado;
+      if (!order.tenant_id) {
+        setPopup({ mostrar: true, mensaje: 'El pedido no tiene tenant_id. No se puede cambiar el estado.', tipo: 'error' });
+        setCambiandoEstado(false);
+        return;
       }
       
       const uuid = order.uuid || order.id_pedido || order.id || id;
-      console.log('Confirmar paso - UUID:', uuid, 'Paso:', siguientePaso.paso, 'Datos:', datosAdicionales);
+      if (!uuid) {
+        setPopup({ mostrar: true, mensaje: 'El pedido no tiene uuid. No se puede cambiar el estado.', tipo: 'error' });
+        setCambiandoEstado(false);
+        return;
+      }
+      
+      datosAdicionales.tenant_id = order.tenant_id;
+      
+      let idEmpleadoUsuario = obtenerIdEmpleado();
+      
+      if (!idEmpleadoUsuario) {
+        try {
+          const tenantIdParaPerfil = obtenerTenantId();
+          if (tenantIdParaPerfil) {
+            const perfil = await obtenerPerfilEmpleado(tenantIdParaPerfil);
+            if (perfil && perfil.id_empleado) {
+              idEmpleadoUsuario = perfil.id_empleado;
+            }
+          }
+        } catch (error) {
+          console.warn('No se pudo obtener perfil del empleado, usando valores del localStorage:', error);
+        }
+      }
+      
+      if (!idEmpleadoUsuario) {
+        setPopup({ mostrar: true, mensaje: 'No se encontró el id_empleado. Por favor, inicia sesión nuevamente.', tipo: 'error' });
+        setCambiandoEstado(false);
+        return;
+      }
+      
+      if (siguientePaso.paso === 'delivery-entregado') {
+        datosAdicionales.cliente_email = order.cliente_email || '';
+        datosAdicionales.repartidor = order.repartidor || 'Repartidor Default';
+        datosAdicionales.id_repartidor = order.id_repartidor || 'REP-001';
+        datosAdicionales.origen = order.origen || order.delivery?.origen || 'LIMA - CENTRO, Av. Arequipa 123, Lima';
+        datosAdicionales.destino = order.destino || order.delivery?.destino || 'MENDRANO SILVA';
+      } else if (siguientePaso.paso === 'cocina-lista') {
+        datosAdicionales.id_empleado = idEmpleadoUsuario;
+      } else if (siguientePaso.paso === 'empaquetamiento-listo') {
+        datosAdicionales.id_empleado = idEmpleadoUsuario;
+        datosAdicionales.cliente_email = order.cliente_email || '';
+        datosAdicionales.origen = order.origen || order.delivery?.origen || 'LIMA - CENTRO, Av. Arequipa 123, Lima';
+        datosAdicionales.destino = order.destino || order.delivery?.destino || 'MENDRANO SILVA';
+      }
+      
+      const jsonAEnviar = {
+        tenant_id: order.tenant_id,
+        uuid: uuid,
+        paso: siguientePaso.paso
+      };
+      
+      if (siguientePaso.paso === 'cocina-lista') {
+        jsonAEnviar.id_empleado = datosAdicionales.id_empleado;
+      } else if (siguientePaso.paso === 'empaquetamiento-listo') {
+        jsonAEnviar.id_empleado = datosAdicionales.id_empleado;
+        jsonAEnviar.cliente_email = datosAdicionales.cliente_email;
+        jsonAEnviar.origen = datosAdicionales.origen;
+        jsonAEnviar.destino = datosAdicionales.destino;
+      } else if (siguientePaso.paso === 'delivery-entregado') {
+        jsonAEnviar.cliente_email = datosAdicionales.cliente_email;
+        jsonAEnviar.origen = datosAdicionales.origen;
+        jsonAEnviar.destino = datosAdicionales.destino;
+        jsonAEnviar.repartidor = datosAdicionales.repartidor;
+        jsonAEnviar.id_repartidor = datosAdicionales.id_repartidor;
+      }
+      
+      console.log('=== CONFIRMAR PASO ===');
+      console.log('Estado actual del pedido:', order.estado_backend);
+      console.log('Siguiente paso:', siguientePaso);
+      console.log('Tenant ID (del pedido):', order.tenant_id);
+      console.log('UUID (del pedido):', uuid);
+      console.log('Datos adicionales:', datosAdicionales);
+      console.log('JSON que se enviará:', JSON.stringify(jsonAEnviar, null, 2));
       
       await confirmarPaso(uuid, siguientePaso.paso, datosAdicionales);
       
@@ -316,15 +369,256 @@ const OrderDetail = () => {
         delivery: datosDelivery
       };
       
+      console.log('Estado actualizado - estado_backend:', datosPedido.estado_pedido, 'status mapeado:', pedidoActualizado.status);
+      
       setOrder(pedidoActualizado);
       setCurrentStatus(pedidoActualizado.status);
       
-      alert(`Estado cambiado exitosamente a: ${siguientePaso.nombre}`);
+      console.log('currentStatus actualizado a:', pedidoActualizado.status);
+      
+      setPopup({ mostrar: true, mensaje: `Estado cambiado exitosamente a: ${siguientePaso.nombre}`, tipo: 'success' });
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (err) {
       console.error('Error al cambiar estado:', err);
-      alert(`Error al cambiar estado: ${err.message}`);
+      
+      if (err.message && err.message.includes('ya fue procesado o el tiempo de espera expiró')) {
+        try {
+          const uuid = order.uuid || order.id_pedido || order.id || id;
+          const tenantId = order.tenant_id || localStorage.getItem('tenant_id') || 'restaurante_central_01';
+          const respuesta = await obtenerPedidoPorId(uuid, tenantId);
+          const datosPedido = respuesta.pedido || respuesta;
+          const datosCocina = respuesta.cocina || null;
+          const datosEmpaquetamiento = respuesta.empaquetamiento || null;
+          const datosDelivery = respuesta.delivery || null;
+          
+          const origen = datosDelivery?.origen || null;
+          const destino = datosDelivery?.destino || null;
+          const repartidor = datosDelivery?.repartidor || null;
+          const idRepartidor = datosDelivery?.id_repartidor || null;
+          
+          const uuidActualizado = datosPedido.uuid || datosPedido.id || datosPedido.id_pedido;
+          const tenantIdActualizado = datosPedido.tenant_id || order.tenant_id;
+          
+          let descripcion = '';
+          if (datosPedido.elementos && Array.isArray(datosPedido.elementos) && datosPedido.elementos.length > 0) {
+            const nombresCombos = [];
+            datosPedido.elementos.forEach(elemento => {
+              if (elemento.combo && Array.isArray(elemento.combo)) {
+                nombresCombos.push(...elemento.combo);
+              }
+            });
+            if (nombresCombos.length > 0) {
+              descripcion = nombresCombos.join(', ');
+            } else {
+              descripcion = `Pedido #${uuidActualizado || 'N/A'}`;
+            }
+          } else if (datosPedido.elementos?.combo && Array.isArray(datosPedido.elementos.combo)) {
+            const combos = datosPedido.elementos.combo.map(c => c.nombre || c.descripcion).join(', ');
+            descripcion = combos;
+          } else {
+            descripcion = `Pedido #${uuidActualizado || 'N/A'}`;
+          }
+          
+          let precioTotal = 0;
+          if (datosPedido.elementos && Array.isArray(datosPedido.elementos)) {
+            precioTotal = datosPedido.elementos.reduce((sum, elemento) => {
+              const precioElemento = elemento.precio || 0;
+              const cantidad = elemento.cantidad_combo || 1;
+              return sum + (precioElemento * cantidad);
+            }, 0);
+          } else if (datosPedido.precio) {
+            precioTotal = datosPedido.precio;
+          }
+          
+          let puntos = 0;
+          if (precioTotal && datosPedido.multiplicador_de_puntos) {
+            puntos = Math.round(precioTotal * datosPedido.multiplicador_de_puntos);
+          } else if (datosPedido.puntos) {
+            puntos = datosPedido.puntos;
+          }
+          
+          const pedidoActualizado = {
+            ...order,
+            id: uuidActualizado || datosPedido.id || order.id,
+            id_pedido: uuidActualizado || datosPedido.id || order.id_pedido,
+            uuid: uuidActualizado,
+            tenant_id: tenantIdActualizado,
+            description: descripcion,
+            status: mapearEstadoFrontend(datosPedido.estado_pedido),
+            estado_backend: datosPedido.estado_pedido,
+            time: calcularTiempoEstimado(datosPedido.estado_pedido),
+            type: datosPedido.delivery ? 'Delivery' : 'Retiro en local',
+            date: formatearFecha(datosPedido.fecha_pedido),
+            origen: origen || datosDelivery?.origen || order.origen,
+            destino: destino || datosDelivery?.destino || order.destino,
+            repartidor: repartidor || datosDelivery?.repartidor || order.repartidor,
+            id_repartidor: idRepartidor || datosDelivery?.id_repartidor || order.id_repartidor,
+            precio: precioTotal,
+            puntos: puntos,
+            multiplicador_de_puntos: datosPedido.multiplicador_de_puntos,
+            beneficios: datosPedido.beneficios || [],
+            elementos: datosPedido.elementos || [],
+            cliente_email: datosPedido.cliente_email,
+            fecha_pedido: datosPedido.fecha_pedido,
+            fecha_creacion: datosPedido.fecha_creacion,
+            preference_id: datosPedido.preference_id,
+            task_token_cocina: datosPedido.task_token_cocina,
+            imagen_combo_url: datosPedido.imagen_combo_url,
+            fecha_entrega: datosPedido.fecha_entrega,
+            cocina: datosCocina,
+            empaquetamiento: datosEmpaquetamiento,
+            delivery: datosDelivery
+          };
+          
+          setOrder(pedidoActualizado);
+          setCurrentStatus(pedidoActualizado.status);
+          
+          setPopup({ mostrar: true, mensaje: 'El pedido fue actualizado. El estado actual es: ' + mapearEstadoFrontend(datosPedido.estado_pedido), tipo: 'success' });
+          
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+        } catch (reloadError) {
+          console.error('Error al recargar pedido:', reloadError);
+          setPopup({ mostrar: true, mensaje: `Error al cambiar estado: ${err.message}`, tipo: 'error' });
+        }
+      } else {
+        setPopup({ mostrar: true, mensaje: `Error al cambiar estado: ${err.message}`, tipo: 'error' });
+      }
     } finally {
       setCambiandoEstado(false);
+    }
+  };
+
+  const handleIniciarWorkflow = async () => {
+    if (!order || iniciandoWorkflow) {
+      console.log('handleIniciarWorkflow: Ya está ejecutándose o no hay pedido, cancelando...');
+      return;
+    }
+    
+    try {
+      setIniciandoWorkflow(true);
+      setError(null);
+      
+      console.log('handleIniciarWorkflow: Iniciando workflow...');
+      
+      const tenant_id = order.tenant_id || 'restaurante_central_01';
+      const uuid = order.uuid || order.id_pedido || order.id || id;
+      const cliente_email = order.cliente_email || '';
+      const origen = order.origen || order.delivery?.origen || 'LIMA - CENTRO, Av. Arequipa 123, Lima';
+      const destino = order.destino || order.delivery?.destino || 'MENDRANO SILVA';
+      
+      if (!uuid || !cliente_email) {
+        setPopup({ mostrar: true, mensaje: 'Faltan datos necesarios para iniciar el workflow (uuid o cliente_email)', tipo: 'error' });
+        setIniciandoWorkflow(false);
+        return;
+      }
+      
+      console.log('Iniciar workflow - Datos:', { tenant_id, uuid, cliente_email, origen, destino });
+      
+      await iniciarWorkflow(tenant_id, uuid, cliente_email, origen, destino);
+      
+      const respuesta = await obtenerPedidoPorId(uuid, null);
+      const datosPedido = respuesta.pedido || respuesta;
+      const datosCocina = respuesta.cocina || null;
+      const datosEmpaquetamiento = respuesta.empaquetamiento || null;
+      const datosDelivery = respuesta.delivery || null;
+      
+      const origenActualizado = datosDelivery?.origen || null;
+      const destinoActualizado = datosDelivery?.destino || null;
+      const repartidor = datosDelivery?.repartidor || null;
+      const idRepartidor = datosDelivery?.id_repartidor || null;
+      
+      const uuidActualizado = datosPedido.uuid || datosPedido.id || datosPedido.id_pedido;
+      const tenantIdActualizado = datosPedido.tenant_id || order.tenant_id;
+      
+      let descripcion = '';
+      if (datosPedido.elementos && Array.isArray(datosPedido.elementos) && datosPedido.elementos.length > 0) {
+        const nombresCombos = [];
+        datosPedido.elementos.forEach(elemento => {
+          if (elemento.combo && Array.isArray(elemento.combo)) {
+            nombresCombos.push(...elemento.combo);
+          }
+        });
+        if (nombresCombos.length > 0) {
+          descripcion = nombresCombos.join(', ');
+        } else {
+          descripcion = `Pedido #${uuidActualizado || 'N/A'}`;
+        }
+      } else if (datosPedido.elementos?.combo && Array.isArray(datosPedido.elementos.combo)) {
+        const combos = datosPedido.elementos.combo.map(c => c.nombre || c.descripcion).join(', ');
+        descripcion = combos;
+      } else {
+        descripcion = `Pedido #${uuidActualizado || 'N/A'}`;
+      }
+      
+      let precioTotal = 0;
+      if (datosPedido.elementos && Array.isArray(datosPedido.elementos)) {
+        precioTotal = datosPedido.elementos.reduce((sum, elemento) => {
+          const precioElemento = elemento.precio || 0;
+          const cantidad = elemento.cantidad_combo || 1;
+          return sum + (precioElemento * cantidad);
+        }, 0);
+      } else if (datosPedido.precio) {
+        precioTotal = datosPedido.precio;
+      }
+      
+      let puntos = 0;
+      if (precioTotal && datosPedido.multiplicador_de_puntos) {
+        puntos = Math.round(precioTotal * datosPedido.multiplicador_de_puntos);
+      } else if (datosPedido.puntos) {
+        puntos = datosPedido.puntos;
+      }
+      
+      const pedidoActualizado = {
+        ...order,
+        id: uuidActualizado || datosPedido.id || order.id,
+        id_pedido: uuidActualizado || datosPedido.id || order.id_pedido,
+        uuid: uuidActualizado,
+        tenant_id: tenantIdActualizado,
+        description: descripcion,
+        status: mapearEstadoFrontend(datosPedido.estado_pedido),
+        estado_backend: datosPedido.estado_pedido,
+        time: calcularTiempoEstimado(datosPedido.estado_pedido),
+        type: datosPedido.delivery ? 'Delivery' : 'Retiro en local',
+        date: formatearFecha(datosPedido.fecha_pedido),
+        origen: origenActualizado || datosDelivery?.origen || order.origen,
+        destino: destinoActualizado || datosDelivery?.destino || order.destino,
+        repartidor: repartidor || datosDelivery?.repartidor || order.repartidor,
+        id_repartidor: idRepartidor || datosDelivery?.id_repartidor || order.id_repartidor,
+        precio: precioTotal,
+        puntos: puntos,
+        multiplicador_de_puntos: datosPedido.multiplicador_de_puntos,
+        beneficios: datosPedido.beneficios || [],
+        elementos: datosPedido.elementos || [],
+        cliente_email: datosPedido.cliente_email,
+        fecha_pedido: datosPedido.fecha_pedido,
+        fecha_creacion: datosPedido.fecha_creacion,
+        preference_id: datosPedido.preference_id,
+        task_token_cocina: datosPedido.task_token_cocina,
+        imagen_combo_url: datosPedido.imagen_combo_url,
+        fecha_entrega: datosPedido.fecha_entrega,
+        cocina: datosCocina,
+        empaquetamiento: datosEmpaquetamiento,
+        delivery: datosDelivery
+      };
+      
+      setOrder(pedidoActualizado);
+      setCurrentStatus(pedidoActualizado.status);
+      
+      setPopup({ mostrar: true, mensaje: 'Workflow iniciado exitosamente. El pedido ahora está en COCINA.', tipo: 'success' });
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (err) {
+      console.error('Error al iniciar workflow:', err);
+      setPopup({ mostrar: true, mensaje: `Error al iniciar workflow: ${err.message}`, tipo: 'error' });
+    } finally {
+      setIniciandoWorkflow(false);
     }
   };
 
@@ -380,14 +674,17 @@ const OrderDetail = () => {
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'En preparación':
+    const statusUpper = status?.toUpperCase();
+    switch (statusUpper) {
+      case 'PAGADO':
+        return '#6c757d';
+      case 'COCINA':
         return '#FFB500';
-      case 'Listo para retirar':
+      case 'EMPAQUETAMIENTO':
         return '#111788';
-      case 'En camino':
+      case 'DELIVERY':
         return '#f61422';
-      case 'Entregado':
+      case 'ENTREGADO':
         return '#28a745';
       default:
         return '#666';
@@ -447,13 +744,13 @@ const OrderDetail = () => {
 
   // Definir la línea de tiempo basada en el estado actual
   const getTimeline = (status) => {
-    const statusFlow = ['En preparación', 'Listo para retirar', 'En camino', 'Entregado'];
-    const currentIndex = statusFlow.indexOf(status);
+    const statusFlow = ['PAGADO', 'COCINA', 'EMPAQUETAMIENTO', 'DELIVERY', 'ENTREGADO'];
+    const currentIndex = statusFlow.indexOf(status?.toUpperCase());
     
     return statusFlow.map((statusName, index) => {
       const completed = index <= currentIndex;
       const isCurrent = index === currentIndex;
-      const time = generateTimeForStatus(index, currentIndex, order.date);
+      const time = generateTimeForStatus(index, currentIndex, order?.date || '');
       
       return {
         status: statusName,
@@ -492,7 +789,10 @@ const OrderDetail = () => {
     );
   }
 
-  const timeline = getTimeline(currentStatus || order.status);
+  const estadoParaTimeline = currentStatus || order?.status || 'Desconocido';
+  console.log('Estado para timeline:', estadoParaTimeline, 'currentStatus:', currentStatus, 'order.status:', order?.status, 'order.estado_backend:', order?.estado_backend);
+  
+  const timeline = getTimeline(estadoParaTimeline);
   const nextStatus = getNextStatus();
 
   return (
@@ -504,7 +804,7 @@ const OrderDetail = () => {
             <img src={logo} alt="Bembos Logo" className="logo" />
           </div>
           <nav className="main-nav">
-            <a onClick={() => navigate('/')} className="nav-item" style={{ cursor: 'pointer' }}>
+            <button onClick={() => navigate('/')} className="nav-item" style={{ cursor: 'pointer', background: 'none', border: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <svg className="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
                 <rect x="3" y="3" width="7" height="7"></rect>
                 <rect x="14" y="3" width="7" height="7"></rect>
@@ -512,21 +812,21 @@ const OrderDetail = () => {
                 <rect x="3" y="14" width="7" height="7"></rect>
               </svg>
               <span>Dashboard</span>
-            </a>
-            <a onClick={() => navigate('/orders')} className="nav-item" style={{ cursor: 'pointer' }}>
+            </button>
+            <button onClick={() => navigate('/orders')} className="nav-item" style={{ cursor: 'pointer', background: 'none', border: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <svg className="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
                 <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
                 <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
               </svg>
               <span>Pedidos</span>
-            </a>
-            <a onClick={() => navigate('/profile')} className="nav-item" style={{ cursor: 'pointer' }}>
+            </button>
+            <button onClick={() => navigate('/profile')} className="nav-item" style={{ cursor: 'pointer', background: 'none', border: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <svg className="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
               <span>Perfil</span>
-            </a>
+            </button>
           </nav>
           <div className="header-right">
             <div className="user-info-container">
@@ -577,7 +877,7 @@ const OrderDetail = () => {
                   
                   <div className="detail-info-item">
                     <span className="detail-label">Tiempo estimado:</span>
-                    <span className="detail-time">{order.time}</span>
+                    <span className="detail-time">{order.time || '30-45 min'}</span>
                   </div>
                   
                   <div className="detail-info-item">
@@ -614,7 +914,7 @@ const OrderDetail = () => {
                       <span className="detail-price" style={{ color: '#111788', fontWeight: 700, fontSize: '1.1rem' }}>
                         S/ {order.precio.toFixed(2)}
                       </span>
-                    </div>
+                </div>
                   )}
                   
                   {order.puntos !== undefined && (
@@ -781,108 +1081,6 @@ const OrderDetail = () => {
                   </div>
                 )}
                 
-                {/* Información de workflow - Siempre mostrar los 3 estados */}
-                <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #e0e0e0' }}>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem', color: '#333' }}>
-                    Historial del workflow
-                  </h3>
-                  
-                  {/* Estado: Cocina */}
-                  <div style={{ 
-                    marginBottom: '1rem', 
-                    padding: '0.75rem', 
-                    backgroundColor: order.cocina ? '#fff3e0' : '#f5f5f5', 
-                    borderRadius: '6px',
-                    opacity: order.cocina ? 1 : 0.6
-                  }}>
-                    <div style={{ fontWeight: 600, color: '#333', marginBottom: '0.5rem' }}>
-                      Cocina {order.cocina?.status === 'terminado' ? '✓' : (order.estado_backend === 'cocina' ? '⏳' : '○')}
-                    </div>
-                    {order.cocina?.id_empleado ? (
-                      <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                        Empleado: {order.cocina.id_empleado}
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: '0.85rem', color: '#999', fontStyle: 'italic' }}>
-                        Pendiente
-                      </div>
-                    )}
-                    {order.cocina?.hora_comienzo && (
-                      <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                        Inicio: {formatearFecha(order.cocina.hora_comienzo)}
-                      </div>
-                    )}
-                    {order.cocina?.hora_fin && (
-                      <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                        Fin: {formatearFecha(order.cocina.hora_fin)}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Estado: Empaquetamiento */}
-                  <div style={{ 
-                    marginBottom: '1rem', 
-                    padding: '0.75rem', 
-                    backgroundColor: order.empaquetamiento ? '#e3f2fd' : '#f5f5f5', 
-                    borderRadius: '6px',
-                    opacity: order.empaquetamiento ? 1 : 0.6
-                  }}>
-                    <div style={{ fontWeight: 600, color: '#333', marginBottom: '0.5rem' }}>
-                      Empaquetamiento {order.empaquetamiento?.status === 'terminado' ? '✓' : (order.estado_backend === 'empaquetamiento' ? '⏳' : '○')}
-                    </div>
-                    {order.empaquetamiento?.id_empleado ? (
-                      <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                        Empleado: {order.empaquetamiento.id_empleado}
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: '0.85rem', color: '#999', fontStyle: 'italic' }}>
-                        Pendiente
-                      </div>
-                    )}
-                    {order.empaquetamiento?.hora_comienzo && (
-                      <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                        Inicio: {formatearFecha(order.empaquetamiento.hora_comienzo)}
-                      </div>
-                    )}
-                    {order.empaquetamiento?.hora_fin && (
-                      <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                        Fin: {formatearFecha(order.empaquetamiento.hora_fin)}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Estado: Delivery */}
-                  <div style={{ 
-                    marginBottom: '1rem', 
-                    padding: '0.75rem', 
-                    backgroundColor: order.delivery ? '#fce4ec' : '#f5f5f5', 
-                    borderRadius: '6px',
-                    opacity: order.delivery ? 1 : 0.6
-                  }}>
-                    <div style={{ fontWeight: 600, color: '#333', marginBottom: '0.5rem' }}>
-                      Delivery {order.delivery?.status === 'cumplido' ? '✓' : (order.estado_backend === 'delivery' ? '⏳' : '○')}
-                    </div>
-                    {order.delivery?.repartidor ? (
-                      <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                        Repartidor: {order.delivery.repartidor} {order.delivery.id_repartidor && `(${order.delivery.id_repartidor})`}
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: '0.85rem', color: '#999', fontStyle: 'italic' }}>
-                        Pendiente
-                      </div>
-                    )}
-                    {order.delivery?.origen && (
-                      <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
-                        Origen: {order.delivery.origen}
-                      </div>
-                    )}
-                    {order.delivery?.destino && (
-                      <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                        Destino: {order.delivery.destino}
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -913,38 +1111,53 @@ const OrderDetail = () => {
               </div>
               
               {/* Información de debug (temporal) */}
-              <div style={{ 
-                marginTop: '1rem', 
-                padding: '1rem', 
-                backgroundColor: '#f0f0f0', 
-                borderRadius: '6px',
-                fontSize: '0.85rem',
-                color: '#666'
-              }}>
-                <div><strong>Debug Info:</strong></div>
-                <div>Estado actual: {currentStatus || order.status}</div>
-                <div>Estado backend: {order.estado_backend}</div>
-                <div>Rol empleado: {obtenerRolEmpleado() || 'No encontrado'}</div>
-                <div>Rol desde localStorage: {localStorage.getItem('rol_empleado') || 'No encontrado'}</div>
-                <div>ID empleado: {obtenerIdEmpleado() || 'No encontrado'}</div>
-                <div>ID desde localStorage: {localStorage.getItem('id_empleado') || 'No encontrado'}</div>
-                <div>Siguiente paso disponible: {nextStatus || 'Ninguno'}</div>
-                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#999' }}>
-                  Todos los localStorage keys: {Object.keys(localStorage).filter(k => k.includes('empleado') || k.includes('rol') || k.includes('tenant')).join(', ')}
+              {order && order.estado_backend === 'PAGADO' && (obtenerRolEmpleado() === 'administrador' || localStorage.getItem('rol_empleado') === 'administrador') && (
+                <div className="status-change-section">
+                  <button 
+                    className="change-status-btn"
+                    onClick={handleIniciarWorkflow}
+                    disabled={iniciandoWorkflow}
+                    style={{ backgroundColor: '#28a745' }}
+                  >
+                    {iniciandoWorkflow ? 'Iniciando workflow...' : 'Cambiar de PAGADO a COCINA'}
+                  </button>
                 </div>
-              </div>
+              )}
               
-              {/* Botón para cambiar de estado */}
-              {nextStatus && (
+              {order && (order.estado_backend === 'COCINA' || order.estado_backend === 'cocina') && (obtenerRolEmpleado() === 'cocinero' || localStorage.getItem('rol_empleado') === 'cocinero') && (
                 <div className="status-change-section">
                   <button 
                     className="change-status-btn"
                     onClick={handleStatusChange}
                     disabled={cambiandoEstado}
                   >
-                    {cambiandoEstado ? 'Cambiando estado...' : `Cambiar a: ${nextStatus}`}
+                    {cambiandoEstado ? 'Cambiando estado...' : 'Cambiar de COCINA a EMPAQUETAMIENTO'}
                   </button>
-                </div>
+            </div>
+              )}
+              
+              {order && (order.estado_backend === 'EMPAQUETAMIENTO' || order.estado_backend === 'empaquetamiento') && (obtenerRolEmpleado() === 'empaque' || localStorage.getItem('rol_empleado') === 'empaque') && (
+                <div className="status-change-section">
+                  <button 
+                    className="change-status-btn"
+                    onClick={handleStatusChange}
+                    disabled={cambiandoEstado}
+                  >
+                    {cambiandoEstado ? 'Cambiando estado...' : 'Cambiar de EMPAQUETAMIENTO a DELIVERY'}
+                  </button>
+          </div>
+              )}
+              
+              {order && (order.estado_backend === 'DELIVERY' || order.estado_backend === 'delivery') && (obtenerRolEmpleado() === 'repartidor' || localStorage.getItem('rol_empleado') === 'repartidor') && (
+                <div className="status-change-section">
+                  <button 
+                    className="change-status-btn"
+                    onClick={handleStatusChange}
+                    disabled={cambiandoEstado}
+                  >
+                    {cambiandoEstado ? 'Cambiando estado...' : 'Cambiar de DELIVERY a ENTREGADO'}
+                  </button>
+        </div>
               )}
               
               {/* Mostrar mensaje si no hay botón pero hay un siguiente paso */}
@@ -961,10 +1174,8 @@ const OrderDetail = () => {
                         color: '#856404',
                         textAlign: 'center'
                       }}>
-                        No puedes cambiar el estado. Tu rol ({obtenerRolEmpleado() || 'no definido'}) no tiene permisos para este paso.
-                        <br />
-                        <small>Paso requerido: {siguientePaso.paso}</small>
-                      </div>
+                        No puedes cambiar el estado. Tu rol {obtenerRolEmpleado() || 'no definido'} no tiene permisos para este paso.
+      </div>
                     </div>
                   );
                 }
@@ -974,6 +1185,100 @@ const OrderDetail = () => {
           </div>
         </div>
       </div>
+
+      {popup.mostrar && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+          onClick={() => setPopup({ mostrar: false, mensaje: '', tipo: 'success' })}
+        >
+          <div 
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '12px',
+              padding: '2.5rem',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+              textAlign: 'center',
+              maxWidth: '400px',
+              width: '90%',
+              position: 'relative'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{
+              width: '80px',
+              height: '80px',
+              margin: '0 auto 1.5rem',
+              backgroundColor: popup.tipo === 'success' ? '#28a745' : '#f61422',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              {popup.tipo === 'success' ? (
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              ) : (
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              )}
+            </div>
+
+            <h2 style={{
+              color: '#333',
+              fontSize: '1.75rem',
+              fontWeight: '700',
+              marginBottom: '1rem',
+              marginTop: 0
+            }}>
+              {popup.tipo === 'success' ? '¡Éxito!' : 'Error'}
+            </h2>
+
+            <p style={{
+              color: '#666',
+              fontSize: '1rem',
+              lineHeight: '1.6',
+              marginBottom: '2rem'
+            }}>
+              {popup.mensaje}
+            </p>
+
+            <button
+              onClick={() => setPopup({ mostrar: false, mensaje: '', tipo: 'success' })}
+              style={{
+                width: '100%',
+                padding: '1rem 2rem',
+                backgroundColor: popup.tipo === 'success' ? '#28a745' : '#f61422',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '1.1rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'background-color 0.3s'
+              }}
+              onMouseOver={(e) => e.target.style.backgroundColor = popup.tipo === 'success' ? '#218838' : '#d0121f'}
+              onMouseOut={(e) => e.target.style.backgroundColor = popup.tipo === 'success' ? '#28a745' : '#f61422'}
+            >
+              Aceptar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

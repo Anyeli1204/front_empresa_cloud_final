@@ -158,7 +158,9 @@ const Home = () => {
         <section className="hero-section">
           <div className="hero-content">
             <img src={empleadosImage} alt="Empleados Bembos" className="empleados-image" />
-            <h1 className="hero-title">Bienvenido</h1>
+            <div className="hero-overlay-dark">
+              <h1 className="hero-title">Bienvenido a Bembos</h1>
+            </div>
           </div>
         </section>
 
@@ -182,24 +184,32 @@ const Home = () => {
           <>
             {reportes.ventasPorEstado && Array.isArray(reportes.ventasPorEstado) && reportes.ventasPorEstado.length > 0 && (
               <section className="sales-summary">
-                <div className="sales-header">
-                  <h2 className="sales-title">Ventas por Estado</h2>
+                <div className="sales-header sales-header-yellow">
+                  <h2 className="sales-title">📊 Ventas por Estado</h2>
                 </div>
                 <div className="sales-cards">
                   {reportes.ventasPorEstado.map((item, index) => {
                     const estadoPedido = item.estado_pedido || item.estado || item.Estado || 'Estado';
                     const totalVentas = item.total_ventas || 0;
                     
-                    const estadoMostrar = estadoPedido === 'COMPLETADO' ? 'Completado' : 
-                                        estadoPedido === 'cocina' ? 'En preparación' :
-                                        estadoPedido === 'empaquetamiento' ? 'Listo para retirar' :
-                                        estadoPedido === 'delivery' ? 'En camino' :
-                                        estadoPedido === 'entregado' ? 'Entregado' :
-                                        estadoPedido;
+                    const estadoMostrar = estadoPedido.toUpperCase();
+                    
+                    const getEstadoColor = (estado) => {
+                      const estadoUpper = estado.toUpperCase();
+                      switch(estadoUpper) {
+                        case 'PAGADO': return '#6c757d';
+                        case 'COCINA': return '#FFB500';
+                        case 'EMPAQUETAMIENTO': return '#111788';
+                        case 'DELIVERY': return '#f61422';
+                        case 'ENTREGADO': return '#28a745';
+                        case 'COMPLETADO': return '#28a745';
+                        default: return '#111788';
+                      }
+                    };
                     
                     return (
-                      <div key={index} className="sales-card">
-                        <div className="sales-card-icon">
+                      <div key={index} className="sales-card" style={{ borderTop: `4px solid ${getEstadoColor(estadoPedido)}` }}>
+                        <div className="sales-card-icon" style={{ background: `linear-gradient(135deg, ${getEstadoColor(estadoPedido)} 0%, ${getEstadoColor(estadoPedido)}dd 100%)` }}>
                           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
                             <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
@@ -207,7 +217,7 @@ const Home = () => {
                         </div>
                         <div className="sales-card-content">
                           <h3 className="sales-card-label">{estadoMostrar}</h3>
-                          <p className="sales-card-value">{formatearMoneda(totalVentas)}</p>
+                          <p className="sales-card-value" style={{ color: getEstadoColor(estadoPedido) }}>{formatearMoneda(totalVentas)}</p>
                         </div>
                       </div>
                     );
@@ -219,7 +229,7 @@ const Home = () => {
             {reportes.ventasPorSegmentos && Array.isArray(reportes.ventasPorSegmentos) && reportes.ventasPorSegmentos.length > 0 && (
               <section className="sales-summary">
                 <div className="sales-header">
-                  <h2 className="sales-title">Ventas por Cliente</h2>
+                  <h2 className="sales-title">👥 Ventas por Cliente</h2>
                 </div>
                 <div className="sales-cards">
                   {obtenerItemsPaginados(reportes.ventasPorSegmentos, 'segmentos').map((item, index) => {
@@ -230,15 +240,15 @@ const Home = () => {
                     
                     return (
                       <div key={indiceReal} className="sales-card">
-                        <div className="sales-card-icon">
-                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <div className="sales-card-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                             <circle cx="9" cy="7" r="4"></circle>
                             <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
                             <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                          </svg>
-                        </div>
-                        <div className="sales-card-content">
+                    </svg>
+                  </div>
+                  <div className="sales-card-content">
                           <h3 className="sales-card-label" style={{ 
                             fontSize: '0.85rem',
                             wordBreak: 'break-word',
@@ -281,7 +291,7 @@ const Home = () => {
             {reportes.ventasPorCombinacion && Array.isArray(reportes.ventasPorCombinacion) && reportes.ventasPorCombinacion.length > 0 && (
               <section className="sales-summary">
                 <div className="sales-header">
-                  <h2 className="sales-title">Ventas por Combo</h2>
+                  <h2 className="sales-title">🍔 Ventas por Combo</h2>
                 </div>
                 <div className="sales-cards">
                   {obtenerItemsPaginados(reportes.ventasPorCombinacion, 'combinacion').map((item, index) => {
@@ -292,14 +302,14 @@ const Home = () => {
                     
                     return (
                       <div key={indiceReal} className="sales-card">
-                        <div className="sales-card-icon">
-                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <div className="sales-card-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
                             <line x1="3" y1="6" x2="21" y2="6"></line>
                             <path d="M16 10a4 4 0 0 1-8 0"></path>
-                          </svg>
-                        </div>
-                        <div className="sales-card-content">
+                    </svg>
+                  </div>
+                  <div className="sales-card-content">
                           <h3 className="sales-card-label" style={{ 
                             fontSize: '0.85rem',
                             wordBreak: 'break-word',
@@ -341,8 +351,8 @@ const Home = () => {
 
             {reportes.margenesPorGanancia && Array.isArray(reportes.margenesPorGanancia) && reportes.margenesPorGanancia.length > 0 && (
               <section className="sales-summary">
-                <div className="sales-header">
-                  <h2 className="sales-title">Ventas por Restaurante</h2>
+                <div className="sales-header sales-header-yellow">
+                  <h2 className="sales-title">🏪 Ventas por Restaurante</h2>
                 </div>
                 <div className="sales-cards">
                   {obtenerItemsPaginados(reportes.margenesPorGanancia, 'restaurantes').map((item, index) => {
@@ -353,13 +363,13 @@ const Home = () => {
                     
                     return (
                       <div key={indiceReal} className="sales-card">
-                        <div className="sales-card-icon">
-                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                            <circle cx="12" cy="10" r="3"></circle>
-                          </svg>
-                        </div>
-                        <div className="sales-card-content">
+                  <div className="sales-card-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                      <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                  </div>
+                  <div className="sales-card-content">
                           <h3 className="sales-card-label" style={{ 
                             fontSize: '0.85rem',
                             wordBreak: 'break-word',
@@ -370,8 +380,8 @@ const Home = () => {
                           </h3>
                           <p className="sales-card-value">{formatearMoneda(totalVentas)}</p>
                           <p className="sales-card-quantity">Pedidos: {cantidadPedidos}</p>
-                        </div>
-                      </div>
+                  </div>
+                </div>
                     );
                   })}
                 </div>

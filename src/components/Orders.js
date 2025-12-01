@@ -26,15 +26,15 @@ const Orders = () => {
         let estadosBackend = [];
         if (filterStatus === 'Todos') {
           estadosBackend = ['PAGADO', 'COCINA', 'EMPAQUETAMIENTO', 'DELIVERY', 'ENTREGADO'];
-        } else if (filterStatus === 'Pagado') {
+        } else if (filterStatus === 'PAGADO') {
           estadosBackend = ['PAGADO'];
-        } else if (filterStatus === 'En preparación') {
+        } else if (filterStatus === 'COCINA') {
           estadosBackend = ['COCINA'];
-        } else if (filterStatus === 'Listo para retirar') {
+        } else if (filterStatus === 'EMPAQUETAMIENTO') {
           estadosBackend = ['EMPAQUETAMIENTO'];
-        } else if (filterStatus === 'En camino') {
+        } else if (filterStatus === 'DELIVERY') {
           estadosBackend = ['DELIVERY'];
-        } else if (filterStatus === 'Entregado') {
+        } else if (filterStatus === 'ENTREGADO') {
           estadosBackend = ['ENTREGADO'];
         }
         
@@ -198,23 +198,24 @@ const Orders = () => {
     return orders.filter(order => {
       const matchesSearch = order.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           order.description.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesFilter = filterStatus === 'Todos' || order.status === filterStatus;
+      const matchesFilter = filterStatus === 'Todos' || order.estado_backend?.toUpperCase() === filterStatus || order.status?.toUpperCase() === filterStatus;
       return matchesSearch && matchesFilter;
     });
   }, [orders, searchTerm, filterStatus]);
 
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'Pagado':
-        return '#9C27B0';
-      case 'En preparación':
+    const statusUpper = status?.toUpperCase();
+    switch (statusUpper) {
+      case 'PAGADO':
+        return '#6c757d';
+      case 'COCINA':
         return '#FFB500';
-      case 'Listo para retirar':
+      case 'EMPAQUETAMIENTO':
         return '#111788';
-      case 'En camino':
+      case 'DELIVERY':
         return '#f61422';
-      case 'Entregado':
+      case 'ENTREGADO':
         return '#28a745';
       default:
         return '#666';
@@ -302,28 +303,34 @@ const Orders = () => {
                   Todos
                 </button>
                 <button
-                  className={`filter-btn ${filterStatus === 'En preparación' ? 'active' : ''}`}
-                  onClick={() => setFilterStatus('En preparación')}
+                  className={`filter-btn ${filterStatus === 'PAGADO' ? 'active' : ''}`}
+                  onClick={() => setFilterStatus('PAGADO')}
                 >
-                  En preparación
+                  PAGADO
                 </button>
                 <button
-                  className={`filter-btn ${filterStatus === 'Listo para retirar' ? 'active' : ''}`}
-                  onClick={() => setFilterStatus('Listo para retirar')}
+                  className={`filter-btn ${filterStatus === 'COCINA' ? 'active' : ''}`}
+                  onClick={() => setFilterStatus('COCINA')}
                 >
-                  Listo para retirar
+                  COCINA
                 </button>
                 <button
-                  className={`filter-btn ${filterStatus === 'En camino' ? 'active' : ''}`}
-                  onClick={() => setFilterStatus('En camino')}
+                  className={`filter-btn ${filterStatus === 'EMPAQUETAMIENTO' ? 'active' : ''}`}
+                  onClick={() => setFilterStatus('EMPAQUETAMIENTO')}
                 >
-                  En camino
+                  EMPAQUETAMIENTO
                 </button>
                 <button
-                  className={`filter-btn ${filterStatus === 'Entregado' ? 'active' : ''}`}
-                  onClick={() => setFilterStatus('Entregado')}
+                  className={`filter-btn ${filterStatus === 'DELIVERY' ? 'active' : ''}`}
+                  onClick={() => setFilterStatus('DELIVERY')}
                 >
-                  Entregado
+                  DELIVERY
+                </button>
+                <button
+                  className={`filter-btn ${filterStatus === 'ENTREGADO' ? 'active' : ''}`}
+                  onClick={() => setFilterStatus('ENTREGADO')}
+                >
+                  ENTREGADO
                 </button>
               </div>
             </div>
@@ -350,65 +357,65 @@ const Orders = () => {
           {!loading && !error && (
             <>
               {filteredOrders.length > 0 ? (
-                <div className="orders-list">
+          <div className="orders-list">
                   {filteredOrders.map((order) => (
-                    <div 
+                <div 
                       key={order.id_pedido || order.id} 
-                      className="order-card"
+                  className="order-card"
                       onClick={() => navigate(`/orders/${order.uuid || order.id_pedido || order.id}`)}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <div className="order-image-container">
-                        <img src={order.image} alt={order.name} className="order-image" />
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div className="order-image-container">
+                    <img src={order.image} alt={order.name} className="order-image" />
+                  </div>
+                  
+                  <div className="order-details">
+                    <h3 className="order-name">{order.name}</h3>
+                    <p className="order-description">{order.description}</p>
+                    
+                    <div className="order-info-row">
+                      <div className="order-info-item">
+                        <span className="info-label">Estado:</span>
+                        <span 
+                          className="order-status" 
+                          style={{ color: getStatusColor(order.status) }}
+                        >
+                          {order.status}
+                        </span>
                       </div>
                       
-                      <div className="order-details">
-                        <h3 className="order-name">{order.name}</h3>
-                        <p className="order-description">{order.description}</p>
-                        
-                        <div className="order-info-row">
-                          <div className="order-info-item">
-                            <span className="info-label">Estado:</span>
-                            <span 
-                              className="order-status" 
-                              style={{ color: getStatusColor(order.status) }}
-                            >
-                              {order.status}
-                            </span>
-                          </div>
-                          
-                          <div className="order-info-item">
-                            <span className="info-label">Tiempo:</span>
-                            <span className="order-time">{order.time}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="order-info-row">
-                          <div className="order-info-item">
-                            <span className="info-label">Tipo:</span>
-                            <span className="order-type">
-                              {order.type === 'Retiro en local' ? (
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                  <circle cx="12" cy="10" r="3"></circle>
-                                </svg>
-                              ) : (
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8z"></path>
-                                  <path d="M5 8h10"></path>
-                                </svg>
-                              )}
-                              {order.type}
-                            </span>
-                          </div>
-                          
-                          <div className="order-info-item">
-                            <span className="info-label">Fecha:</span>
-                            <span className="order-date">{order.date}</span>
-                          </div>
-                        </div>
+                      <div className="order-info-item">
+                        <span className="info-label">Tiempo:</span>
+                        <span className="order-time">{order.time}</span>
                       </div>
                     </div>
+                    
+                    <div className="order-info-row">
+                      <div className="order-info-item">
+                        <span className="info-label">Tipo:</span>
+                        <span className="order-type">
+                          {order.type === 'Retiro en local' ? (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                              <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                          ) : (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8z"></path>
+                              <path d="M5 8h10"></path>
+                            </svg>
+                          )}
+                          {order.type}
+                        </span>
+                      </div>
+                      
+                      <div className="order-info-item">
+                        <span className="info-label">Fecha:</span>
+                        <span className="order-date">{order.date}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                   ))}
                 </div>
               ) : (
@@ -439,7 +446,7 @@ const Orders = () => {
                       ? 'No se encontraron pedidos en el sistema.' 
                       : `No se encontraron pedidos con estado "${filterStatus}".`}
                   </p>
-                </div>
+          </div>
               )}
             </>
           )}
